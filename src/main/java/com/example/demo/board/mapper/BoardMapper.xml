@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.demo.board.mapper.BoardMapper">
+
+	<!-- 게시판 수 -->
+	<select id="getTotal" resultType="int">
+		SELECT
+		COUNT(*)
+		FROM BOARD
+		<if test="keyword != null">
+			<include refid="criteria"></include>
+		</if>
+	</select>
+
+	<!-- 게시판 목록 -->
+	<!-- <select id="boardList" resultType="com.example.demo.board.domain.BoardVO"> 
+		SELECT * FROM BOARD ORDER BY bno desc; </select> -->
+
+	<!-- 게시판 조회 -->
+	<select id="boardView" parameterType="int"
+		resultType="com.example.demo.board.domain.BoardVO">
+		select
+			bno,
+			title,
+			writer,
+			content,
+			reg_date,
+			update_time,
+			hit_cnt,
+			has_file,
+			is_private
+		from
+			BOARD
+		where
+			BNO = #{bno}
+	</select>
+	<select id="chkFile" parameterType="int" resultType="String">
+		select
+		has_file
+		from
+		board
+		where
+		bno = #{bno}
+	</select>
+
+	<select id="fileView" parameterType="int"
+		resultType="com.example.demo.board.domain.FileVO">
+		SELECT fno, bno, filename, fileOriName, fileurl
+		FROM Files
+		WHERE
+		BNO = #{bno}
+	</select>
+
+	<select id="fileViewDetail" parameterType="int"
+		resultType="com.example.demo.board.domain.FileVO">
+		SELECT fno, bno, filename, fileOriName, fileurl
+		FROM Files
+		WHERE
+		FNO = #{fno}
+	</select>
+
+	<!-- 게시글 등록 -->
+	<insert id="boardInsert"
+		parameterType="com.example.demo.board.domain.BoardVO"
+		useGeneratedKeys="true" keyProperty="bno">
+		INSERT INTO
+		BOARD (TITLE, CONTENT,
+		WRITER, PASSWORD, REG_DATE, HAS_FILE, IS_PRIVATE)
+		VALUES(#{title}, #{content},
+		#{writer}, #{password}, now(), #{has_file}, #{is_private})
+	</insert>
+
+	<!-- 파일 업로드 -->
+	<insert id="fileInsert"
+		parameterType="com.example.demo.board.domain.FileVO">
+		INSERT INTO
+		FILES (BNO, FILENAME, FILEORINAME, FILEURL)
+		VALUES(#{bno}, #{fileName}, #{fileOriName}, #{fileUrl})
+	</insert>
+
+	<!-- 게시글 수정 -->
+	<update id="boardUpdate"
+		parameterType="com.example.demo.board.domain.BoardVO">
+		UPDATE BOARD
+		SET
+		<if test="title != null">
+			TITLE = #{title}
+		</if>
+		<if test="title != null and content != null">, </if>
+		<if test="content != null">
+			CONTENT = #{content}
+		</if>
+		,
+
+		UPDATE_TIME = now(),
+		HAS_FILE = #{has_file}
+		WHERE BNO = #{bno}
+	</update>
+
+	<!-- 게시글 삭제 -->
+	<delete id="boardDelete" parameterType="int">
+		DELETE FROM BOARD WHERE BNO = #{bno}
+	</delete>
+	<!-- 게시글 삭제 전 비번 chk -->
+	<select id="boardDeleteChk" parameterType="int"
+		resultType="String">
+		select
+		password
+		from
+		board
+		where
+		BNO = #{bno}
+	</select>
+
+
+	<!-- 파일삭제 -->
+	<delete id="fileDelete" parameterType="int">
+		DELETE FROM FILES WHERE
+		FNO = #{fno}
+	</delete>
+
+	<!-- 파일삭제 게시판 반영 -->
+	<update id="fileDelete4Board" parameterType="int">
+		UPDATE BOARD
+		SET
+		HAS_FILE = 'N'
+
+		WHERE BNO = #{bno}
+	</update>
+
+	<!-- 조회수 -->
+	<update id="boardHitsUpdate" parameterType="int">
+
+		UPDATE BOARD
+		SET HIT_CNT = hit_cnt +1
+		WHERE BNO = #{bno}
+	</update>
+
+
+	<!-- 게시물 목록(페이징) -->
+
+
+	<select id="getListPaging"
+		resultType="com.example.demo.board.domain.BoardVO">
+
+
+		SELECT bno, title, writer, reg_date, update_time, hit_cnt, has_file, is_private
+		FROM board
+		<if test="keyword != null">
+			<include refid="criteria"></include>
+		</if>
+		ORDER BY bno desc
+
+		limit #{skip},#{amount}
+
+	</select>
+
+
+	<!-- <select id="getListPaging" resultType="com.example.demo.board.domain.BoardVO"> 
+		SELECT * FROM BOARD <if test="keyword != null"> <include refid="criteria"></include> 
+		</if> ORDER BY bno desc limit #{skip},#{amount} </select> -->
+
+
+
+	<!-- 검색 조건문 -->
+	<sql id="criteria">
+		<trim prefix="where (" suffix=")" prefixOverrides="OR">
+			<foreach collection="typeArr" item="type">
+				<trim prefix="OR">
+					<choose>
+						<when test="type == 'T'.toString()">
+							title like concat('%',#{keyword},'%')
+						</when>
+						<when test="type == 'C'.toString()">
+							content like concat('%',#{keyword},'%')
+						</when>
+						<when test="type == 'W'.toString()">
+							writer like concat('%',#{keyword},'%' )
+						</when>
+					</choose>
+				</trim>
+			</foreach>
+		</trim>
+
+	</sql>
+
+
+
+
+</mapper>
